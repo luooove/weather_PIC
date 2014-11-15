@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+        
+         <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+        <style>
+        #map { height: 800px; }
+            
+            
+            .demo-container {
+	box-sizing: border-box;
+	width: 400px;
+	height: 450px;
+	padding: 20px 15px 15px 15px;
+	margin: 15px auto 30px auto;
+	border: 1px solid #ddd;
+	background: #fff;
+	background: linear-gradient(#f6f6f6 0, #fff 50px);
+	background: -o-linear-gradient(#f6f6f6 0, #fff 50px);
+	background: -ms-linear-gradient(#f6f6f6 0, #fff 50px);
+	background: -moz-linear-gradient(#f6f6f6 0, #fff 50px);
+	background: -webkit-linear-gradient(#f6f6f6 0, #fff 50px);
+	box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+	-o-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+	-ms-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+	-moz-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+	-webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    
+    float:left;
+    margin:10px;
+}
+
+.demo-placeholder {
+	width: 100%;
+	height: 100%;
+	font-size: 14px;
+	line-height: 1.2em;
+}
+
+            
+            
+            
+            
+        </style>
+        
+          <script type="text/javascript" src="/static/jquery-1.10.2.min.js"></script>   
+        
+    <script type="text/javascript" src="/static/canvasjs.js"></script>
+        <script language="javascript" type="text/javascript" src="/static/jquery.flot.js"></script>
+        <script language="javascript" type="text/javascript" src="/static/jquery.flot.time.js"></script>
+
+    </head>
+    <body>
+
+        
+        <!-- Add your site or application content here -->
+        <div align="center">
+            <font size="12px"><p>SWJTU WEATHER STATION. </p></font>
+        </div>
+         <div id="map"></div>
+
+        
+                          
+        		<div class="demo-container">
+                    <div>图1：降水量</div>
+			<div id="flot_waterlevel" class="demo-placeholder"></div>
+                    </div><div class="demo-container">
+                     <div>图2：PM2.5</div>
+            <div id="flot_pm25" class="demo-placeholder"></div>
+         </div><div class="demo-container">
+                    <div>图3：湿度</div>
+            <div id="flot_humidity" class="demo-placeholder"></div>
+         </div><div class="demo-container">
+                    <div>图4：温度</div>
+            <div id="flot_temp" class="demo-placeholder"></div>
+         </div><div class="demo-container">
+                    <div>图5：风力</div>
+            <div id="flot_wind" class="demo-placeholder"></div>
+         </div><div class="demo-container">
+                    <div>图6：光照</div>
+            <div id="flot_light" class="demo-placeholder"></div>
+         </div><div class="demo-container">
+                    <div>图7：大气压</div>
+            <div id="flot_pressure" class="demo-placeholder"></div>
+         </div>
+        
+        
+
+        
+         <script src="/static/leaflet.js"></script>
+          <script src="/socket.io/socket.io.js"></script>
+        
+        <script>
+          var sensordata = {"count":0,"waterlevel":"0","pm25":"0","humidity":"0","temp":"0","wind":"0","light":"0","pressure":"0",}
+          var chartdata=  {"waterlevel":{"label":"降水量","data":[]},"pm25":{"label":"PM2.5","data":[]},"humidity":{"label":"humidity","data":[]},"temp":{"label":"temp","data":[]},"wind":{"label":"wind","data":[]},"light":{"label":"light","data":[]},"pressure":{"label":"pressure","data":[]}};
+          var time = new Date;
+            
+          var map = L.map('map').setView([30.699,104.048], 17);
+           //copyright
+		L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'SWJTU WEATHER STATION.&copy; <a href="http://maker.swjtu.edu.cn">SWJTU MAKERSPACE</a> Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'examples.map-i875mjb7'
+		}).addTo(map);
+            
+                           
+                   var circle = L.circle([30.699,104.050], 10, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5
+        }).addTo(map).bindPopup("降水量："+sensordata.waterlevel +"<br />" + "湿度：74%"+"<br />"+ "PM2.5：224μg/m³<br />" + "温度：21 ℃" + "<br />" + "风力：1级"+ "<br />" + "光照： 较弱" + "<br />" + "气压：" +sensordata.pressure+ "hPa").openPopup();
+
+            
+          
+          //get data
+          var socket = io();
+            //socket.emit('chat message', $('#m').val());
+            socket.on('connect', function() {  
+                socket.send('hello');
+            });
+
+          socket.on('chat message', function(msg){
+            //$('#messages').append($('<li>').text(msg));
+              socket.emit('chat message', 'got');
+              //console.log(msg);
+              if(msg != "wait" && msg != "start"){
+                  msgarray = msg.split("|");
+                  sensordata.waterlevel = msgarray[0];
+                  sensordata.pm25 = msgarray[1];
+                  sensordata.humidity = msgarray[2];
+                  sensordata.temp = msgarray[3];
+                  sensordata.wind = msgarray[4];
+                  sensordata.light = msgarray[5];
+                  sensordata.pressure = msgarray[6];
+                  sensordata.count = sensordata.count +1;
+                  
+                  chartdata.waterlevel.data.push([sensordata.count,parseFloat(sensordata.waterlevel)]);
+                  chartdata.pm25.data.push([sensordata.count,parseFloat(sensordata.pm25)]);
+                  chartdata.humidity.data.push([sensordata.count,parseFloat(sensordata.humidity)]);
+                  chartdata.temp.data.push([sensordata.count,parseFloat(sensordata.temp)]);
+                  chartdata.wind.data.push([sensordata.count,parseFloat(sensordata.wind)]);
+                  chartdata.light.data.push([sensordata.count,parseFloat(sensordata.light)]);
+                  chartdata.pressure.data.push([sensordata.count,parseFloat(sensordata.pressure)]);
+                  
+                  //console.log(chartdata);
+                 // chartdata.push([chartdata.length+1,parseFloat(sensordata.pm25)]);
+                  updateflot();
+                  //updateChart(sensordata);
+                  //updateData(sensordata);
+                  
+//                  var marker = L.marker([30.699,104.048]).addTo(map).bindPopup("降水量："+sensordata.waterlevel +"<br />" + "湿度：" +sensordata.humidity +"<br />"+ "PM2.5：" +sensordata.pm25 +"<br />" + "温度：" +sensordata.temp + "<br />" + "风力：" +sensordata.wind + "<br />" + "光照：" +sensordata.light + "<br />" + "气压：" +sensordata.pressure).openPopup();
+                  
+                   var circle = L.circle([30.699,104.050], 10, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5
+        }).addTo(map).bindPopup("降水量："+sensordata.waterlevel +"<br />" + "湿度：" +sensordata.humidity + "%"+"<br />"+ "PM2.5：" +sensordata.pm25 +"<br />" + "温度：" +sensordata.temp+ " ℃" + "<br />" + "风力：" +(sensordata.wind *2.1).toPrecision(4)+ "m/s"+ "<br />" + "光照： 较弱" + "<br />" + "气压：" +sensordata.pressure+ "hPa").openPopup();
+
+              }
+
+          });
+
+
+    
+            //显示数据
+//         var updateData = function (sensor) {
+//            $("#sensordata").html("降水量："+sensor.waterlevel +"<br />" + "湿度：" +sensor.humidity +"<br />"+ "PM2.5：" +sensor.pm25 +"<br />" + "温度：" +sensor.temp + "<br />" + "风力：" +sensor.wind + "<br />" + "光照：" +sensor.light + "<br />" + "气压：" +sensor.pressure+ "hPa：");
+//		};
+        
+
+            
+
+
+		// We use an inline data source in the example, usually data would
+		// be fetched from a server
+
+		var data = [],
+			totalPoints = 300;
+
+		function getRandomData() {
+
+			if (data.length > 0)
+				data = data.slice(1);
+
+			// Do a random walk
+
+			while (data.length < totalPoints) {
+
+				var prev = data.length > 0 ? data[data.length - 1] : 50,
+					y = prev + Math.random() * 10 - 5;
+
+				if (y < 0) {
+					y = 0;
+				} else if (y > 1000) {
+					y = 1000;
+				}
+
+				data.push(y);
+			}
+
+			// Zip the generated y values with the x values
+
+			var res = [];
+			for (var i = 0; i < data.length; ++i) {
+				res.push([i, data[i]])
+			}
+
+			return res;
+		}
+
+		// Set up the control widget
+
+		var updateInterval = 30;
+                  chartdata.waterlevel.data.push([sensordata.count,parseFloat(sensordata.waterlevel)]);
+                  chartdata.pm25.data.push([sensordata.count,parseFloat(sensordata.pm25)]);
+                  chartdata.humidity.data.push([sensordata.count,parseFloat(sensordata.humidity)]);
+                  chartdata.temp.data.push([sensordata.count,parseFloat(sensordata.temp)]);
+                  chartdata.wind.data.push([sensordata.count,parseFloat(sensordata.wind)]);
+                  chartdata.light.data.push([sensordata.count,parseFloat(sensordata.light)]);
+                  chartdata.pressure.data.push([sensordata.count,parseFloat(sensordata.pressure)]);
+
+		var flot_waterlevel = $.plot("#flot_waterlevel", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 2000
+			},
+			xaxis: { },
+		});
+
+         var flot_pm25 = $.plot("#flot_pm25", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 3500
+			},
+			xaxis: { },
+		});
+                var flot_humidity = $.plot("#flot_humidity", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 100
+			},
+			xaxis: { },
+		});
+                     var flot_temp = $.plot("#flot_temp", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 60
+			},
+			xaxis: { },
+		});
+                     var flot_wind = $.plot("#flot_wind", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 10
+			},
+			xaxis: { },
+		});
+                     var flot_light = $.plot("#flot_light", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 2048
+			},
+			xaxis: { },
+		});
+            
+                    var flot_pressure = $.plot("#flot_pressure", [ getRandomData()], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 1200
+			},
+			xaxis: { },
+		});
+            
+		function updateflot() {
+
+			flot_waterlevel.setData([chartdata.waterlevel.data]);
+            flot_waterlevel.draw();
+            			flot_pm25.setData([chartdata.pm25.data]);
+            flot_pm25.draw();
+            			flot_humidity.setData([chartdata.humidity.data]);
+            flot_humidity.draw();
+            			flot_temp.setData([chartdata.temp.data]);
+            flot_temp.draw();
+            			flot_wind.setData([chartdata.wind.data]);
+            flot_wind.draw();
+            			flot_light.setData([chartdata.light.data]);
+            flot_light.draw();
+            			flot_pressure.setData([chartdata.pressure.data]);
+            flot_pressure.draw();
+            
+            //console.log(chartdata.waterlevel.data);
+			
+            
+            
+			//setTimeout(updateflot, updateInterval);
+		}
+        
+        //console.log(getRandomData());
+		//updateflot();
+
+
+            
+            
+            
+    </script>
+        
+
+    </body>
+</html>
